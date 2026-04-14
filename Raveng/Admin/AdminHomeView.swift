@@ -28,6 +28,9 @@ final class AdminVM: ObservableObject {
 
 struct AdminHomeView: View {
     @StateObject var vm = AdminVM()
+    @State private var showNewTemplate = false
+    @State private var showNewSubmission = false
+    @State private var pickSubmissionTemplate = false
 
     var body: some View {
         NavigationStack {
@@ -58,6 +61,21 @@ struct AdminHomeView: View {
                                      label: "Invii recenti",
                                      icon: "paperplane.fill",
                                      gradient: BrandGradient.success)
+                        }
+                        .padding(.horizontal, 16)
+
+                        // Quick actions
+                        HStack(spacing: 10) {
+                            GradientButton(title: "Nuovo template",
+                                           systemImage: "plus",
+                                           gradient: BrandGradient.primary) {
+                                showNewTemplate = true
+                            }
+                            GradientButton(title: "Nuovo invio",
+                                           systemImage: "paperplane",
+                                           gradient: BrandGradient.success) {
+                                pickSubmissionTemplate = true
+                            }
                         }
                         .padding(.horizontal, 16)
 
@@ -115,7 +133,29 @@ struct AdminHomeView: View {
             }
         }
         .task { await vm.load() }
+        .fullScreenCover(isPresented: $showNewTemplate, onDismiss: {
+            Task { await vm.load() }
+        }) {
+            WebAdminView(path: "/templates/new", title: "Nuovo template")
+        }
+        .sheet(isPresented: $pickSubmissionTemplate) {
+            TemplatePickerSheet(templates: vm.templates) { t in
+                pickSubmissionTemplate = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    self.pickedTemplateForSubmission = t
+                }
+            }
+            .presentationDetents([.medium, .large])
+        }
+        .fullScreenCover(item: $pickedTemplateForSubmission, onDismiss: {
+            Task { await vm.load() }
+        }) { t in
+            WebAdminView(path: "/templates/\(t.id)/submissions/new",
+                         title: "Nuovo invio")
+        }
     }
+
+    @State private var pickedTemplateForSubmission: TemplateSummary?
 
     @ViewBuilder
     private func emptyInline(_ text: String) -> some View {
@@ -126,6 +166,90 @@ struct AdminHomeView: View {
             .padding(16)
             .floatingCard()
             .padding(.horizontal, 16)
+    }
+}
+
+// MARK: - Template picker (per Nuovo invio)
+struct TemplatePickerSheet: View {
+    let templates: [TemplateSummary]
+    let onPick: (TemplateSummary) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var query = ""
+
+    var filtered: [TemplateSummary] {
+        guard !query.isEmpty else { return templates }
+        return templates.filter { $0.name.localizedCaseInsensitiveContains(query) }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                BrandColor.surface.ignoresSafeArea()
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("Scegli un template")
+                            .font(BrandFont.title(22))
+                            .foregroundStyle(BrandColor.ink)
+                            .padding(.horizontal, 16).padding(.top, 12)
+
+                        HStack {
+                            Image(systemName: "magnifyingglass").foregroundStyle(BrandColor.mute)
+                            TextField("Cerca…", text: $query)
+                                .textInputAutocapitalization(.never)
+                        }
+                        .padding(12)
+                        .background(BrandGradient.subtleCard,
+                                    in: RoundedRectangle(cornerRadius: BrandRadius.sm))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: BrandRadius.sm)
+                                .stroke(Color.white.opacity(0.6), lineWidth: 0.8)
+                        )
+                        .padding(.horizontal, 16)
+
+                        if filtered.isEmpty {
+                            Text("Nessun template").foregroundStyle(BrandColor.mute)
+                                .padding(.horizontal, 16).padding(.top, 20)
+                        } else {
+                            LazyVStack(spacing: 10) {
+                                ForEach(filtered) { t in
+                                    Button {
+                                        Haptics.tap(); onPick(t)
+                                    } label: {
+                                        ListRowCard(
+                                            leading: {
+                                                IconTile(systemImage: "doc.on.doc.fill",
+                                                         size: 42, gradient: BrandGradient.primary)
+                                            },
+                                            content: {
+                                                VStack(alignment: .leading, spacing: 4) {
+                                                    Text(t.name)
+                                                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                                                        .foregroundStyle(BrandColor.ink)
+                                                        .lineLimit(2)
+                                                    if let c = t.submissionsCount {
+                                                        Text("\(c) invii").font(BrandFont.caption(11))
+                                                            .foregroundStyle(BrandColor.mute)
+                                                    }
+                                                }
+                                            }
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 20)
+                        }
+                    }
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Chiudi") { dismiss() }
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+        }
     }
 }
 

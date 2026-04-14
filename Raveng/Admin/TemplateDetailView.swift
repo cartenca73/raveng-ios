@@ -136,20 +136,6 @@ struct TemplateDetailView: View {
         }
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button {
-                    Haptics.tap(); dismiss()
-                } label: {
-                    ZStack {
-                        Circle().fill(.ultraThinMaterial).frame(width: 34, height: 34)
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(BrandColor.ink)
-                    }
-                }
-            }
-        }
         .task { await vm.load(id: template.id) }
         .confirmationDialog(
             "Archiviare questo template?",
@@ -323,44 +309,118 @@ private struct SubmissionMiniRow: View {
     }
 }
 
-// MARK: - Web admin fallback
+// MARK: - Web admin with auto-login bridge
 import WebKit
+
+/// Opens a DocuSeal admin page in a WKWebView, auto-logging-in the current
+/// app user via the JWT -> Devise session bridge endpoint.
 struct WebAdminView: View {
-    let path: String
+    let path: String                        // e.g. "/templates/new"
+    var title: String = "Admin"
     @Environment(\.dismiss) private var dismiss
+    @State private var progress: Double = 0
+    @State private var isLoading = true
+
+    private var bridgeURL: URL {
+        // The webview loads the bridge; backend signs in via cookie then redirects to `path`.
+        var comps = URLComponents(string: "https://docusign.ce4u.it/api/app/v1/auth/web_session")!
+        var items = [URLQueryItem(name: "redirect_to", value: path)]
+        if let tok = KeychainService.get(.accessToken), !tok.isEmpty {
+            items.append(URLQueryItem(name: "token", value: tok))
+        }
+        comps.queryItems = items
+        return comps.url!
+    }
+
     var body: some View {
         ZStack(alignment: .top) {
             Color.white.ignoresSafeArea()
-            WebView(url: URL(string: "https://docusign.ce4u.it\(path)")!)
+
+            AdminWebRepresentable(url: bridgeURL,
+                                  progress: $progress,
+                                  isLoading: $isLoading)
                 .ignoresSafeArea(edges: .bottom)
-            HStack {
-                Button {
-                    Haptics.tap(); dismiss()
-                } label: {
-                    ZStack {
-                        Circle().fill(.ultraThinMaterial).frame(width: 34, height: 34)
-                        Image(systemName: "xmark")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(BrandColor.ink)
+
+            VStack(spacing: 0) {
+                HStack {
+                    Button {
+                        Haptics.tap(); dismiss()
+                    } label: {
+                        ZStack {
+                            Circle().fill(.ultraThinMaterial).frame(width: 34, height: 34)
+                            Image(systemName: "xmark")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundStyle(BrandColor.ink)
+                        }
                     }
+                    Spacer()
+                    Text(title).font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundStyle(BrandColor.ink)
+                    Spacer()
+                    Color.clear.frame(width: 34, height: 34)
                 }
-                Spacer()
-                Text("Admin Web").font(.system(size: 15, weight: .semibold, design: .rounded))
-                    .foregroundStyle(BrandColor.ink)
-                Spacer()
-                Color.clear.frame(width: 34, height: 34)
+                .padding(.horizontal, 16).padding(.top, 8)
+
+                if isLoading {
+                    GeometryReader { geo in
+                        Rectangle().fill(BrandGradient.primary)
+                            .frame(width: geo.size.width * progress, height: 2)
+                    }
+                    .frame(height: 2)
+                }
             }
-            .padding(.horizontal, 16).padding(.top, 8)
         }
     }
 }
 
-private struct WebView: UIViewRepresentable {
+private struct AdminWebRepresentable: UIViewRepresentable {
     let url: URL
+    @Binding var progress: Double
+    @Binding var isLoading: Bool
+
+    func makeCoordinator() -> Coord { Coord(progress: $progress, isLoading: $isLoading) }
+
     func makeUIView(context: Context) -> WKWebView {
-        let wv = WKWebView()
+        let cfg = WKWebViewConfiguration()
+        cfg.allowsInlineMediaPlayback = true
+        cfg.websiteDataStore = .default()
+        let wv = WKWebView(frame: .zero, configuration: cfg)
+        wv.navigationDelegate = context.coordinator
+        wv.scrollView.contentInsetAdjustmentBehavior = .always
+        context.coordinator.observe(wv)
         wv.load(URLRequest(url: url))
         return wv
     }
+
     func updateUIView(_ uiView: WKWebView, context: Context) {}
+
+    static func dismantleUIView(_ uiView: WKWebView, coordinator: Coord) {
+        coordinator.invalidate(uiView)
+    }
+
+    final class Coord: NSObject, WKNavigationDelegate {
+        @Binding var progress: Double
+        @Binding var isLoading: Bool
+        private var obs: NSKeyValueObservation?
+
+        init(progress: Binding<Double>, isLoading: Binding<Bool>) {
+            self._progress = progress
+            self._isLoading = isLoading
+        }
+
+        func observe(_ wv: WKWebView) {
+            obs = wv.observe(\.estimatedProgress, options: .new) { [weak self] wv, _ in
+                Task { @MainActor in self?.progress = wv.estimatedProgress }
+            }
+        }
+        func invalidate(_ wv: WKWebView) {
+            obs?.invalidate(); obs = nil; wv.stopLoading()
+        }
+        func webView(_ wv: WKWebView, didStartProvisionalNavigation nav: WKNavigation!) {
+            Task { @MainActor in isLoading = true }
+        }
+        func webView(_ wv: WKWebView, didFinish nav: WKNavigation!) {
+            Task { @MainActor in isLoading = false; progress = 0 }
+        }
+    }
 }
