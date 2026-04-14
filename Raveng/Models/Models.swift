@@ -199,8 +199,42 @@ struct SubmissionSummary: Codable, Identifiable, Hashable {
     }
 }
 
-// MARK: - Blockchain Verification
-struct BlockchainInfo: Codable, Equatable {
+// MARK: - Blockchain Verification response (matches backend shape)
+struct BlockchainVerifyResponse: Decodable, Equatable {
+    let found: Bool
+    let hash: String?
+    let documentHash: String?
+    let hashAlgorithm: String?
+    let signerName: String?
+    let signerEmail: String?
+    let signedAt: String?
+    let payment: PaymentInfo?
+
+    enum CodingKeys: String, CodingKey {
+        case found, hash, payment
+        case documentHash  = "document_hash"
+        case hashAlgorithm = "hash_algorithm"
+        case signerName    = "signer_name"
+        case signerEmail   = "signer_email"
+        case signedAt      = "signed_at"
+    }
+}
+
+struct PaymentInfo: Decodable, Equatable {
+    let transactionId: String?
+    let amount: Double?
+    let currency: String?
+    let completedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case amount, currency
+        case transactionId = "transaction_id"
+        case completedAt   = "completed_at"
+    }
+}
+
+// Legacy unified struct for old UI code path
+struct BlockchainInfo: Decodable, Equatable {
     let documentHash: String
     let signerName: String?
     let signedAt: String?

@@ -124,10 +124,15 @@ final class APIClient: ObservableObject {
         body.append(data)
         append("\r\n--\(boundary)--\r\n")
 
-        // NOTA: session.upload(for:from:) SOVRASCRIVE httpBody col secondo parametro.
-        // Quindi passiamo `body` come `from:` invece di settare httpBody + Data().
+        // Setto il body direttamente su httpBody e uso data(for:) che NON modifica headers.
+        // Setto Content-Length esplicito per evitare chunked encoding che alcuni proxy
+        // riscrivono perdendo il Content-Type multipart.
+        req.httpBody = body
+        req.setValue("\(body.count)", forHTTPHeaderField: "Content-Length")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+
         do {
-            let (resp, response) = try await session.upload(for: req, from: body)
+            let (resp, response) = try await session.data(for: req)
             guard let http = response as? HTTPURLResponse else { throw APIError.empty }
             if http.statusCode == 401 { throw APIError.unauthorized }
             guard (200..<300).contains(http.statusCode) else {

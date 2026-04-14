@@ -18,6 +18,7 @@ final class VerifyVM: ObservableObject {
     @Published var loading = false
     @Published var error: String?
     @Published var info: BlockchainInfo?
+    @Published var response: BlockchainVerifyResponse?
     @Published var pickedFileName: String?
     @Published var computedHash: String?
     @Published var summary: DocumentSummary.Summary?
@@ -29,7 +30,8 @@ final class VerifyVM: ObservableObject {
         let didStartAccess = fileURL.startAccessingSecurityScopedResource()
         defer { if didStartAccess { fileURL.stopAccessingSecurityScopedResource() } }
 
-        loading = true; error = nil; info = nil; computedHash = nil; summary = nil
+        loading = true; error = nil; info = nil; response = nil
+        computedHash = nil; summary = nil
         do {
             // Usa NSFileCoordinator per leggere in modo sicuro anche file su iCloud Drive
             let data = try readDataCoordinated(from: fileURL)
@@ -43,8 +45,27 @@ final class VerifyVM: ObservableObject {
             let hash = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
             self.computedHash = hash
             self.pickedFileName = fileURL.lastPathComponent
-            self.info = try await APIClient.shared.send(API.Verify.byHash(hash))
-            Haptics.success()
+
+            let resp: BlockchainVerifyResponse = try await APIClient.shared.send(API.Verify.byHash(hash))
+            self.response = resp
+
+            if resp.found, let docHash = resp.documentHash {
+                // Mappiamo al BlockchainInfo legacy per la ResultCard
+                self.info = BlockchainInfo(
+                    documentHash:      docHash,
+                    signerName:        resp.signerName,
+                    signedAt:          resp.signedAt,
+                    bitcoinTxId:       resp.payment?.transactionId,
+                    blockHeight:       nil,
+                    merkleRoot:        nil,
+                    otsProofAvailable: nil,
+                    attestation:       "Pagamento CDC: \(resp.payment?.currency ?? "EUR") \(resp.payment?.amount.map { String(format: "%.2f", $0) } ?? "")"
+                )
+                Haptics.success()
+            } else {
+                self.error = "Documento NON trovato sulla blockchain. Non risulta firmato dal sistema FirmaCDC."
+                Haptics.warning()
+            }
         } catch let e as APIError {
             switch e {
             case .http(404, _):
