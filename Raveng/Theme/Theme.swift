@@ -154,51 +154,44 @@ extension View {
 
 // MARK: - Mesh-like background (compatible iOS 17)
 /// Three overlapping radial gradients that approximate a mesh gradient.
-/// Used as the hero background for a premium, depth-rich look.
+/// NO GeometryReader — fixed dimensions to avoid scroll gesture interference
+/// when the hero is nested inside a ScrollView.
 struct MeshBackground: View {
     let colors: [Color]
     var animated: Bool = true
-    @State private var t: CGFloat = 0
+    @State private var phase: CGFloat = 0
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                colors[0]
+        ZStack {
+            colors[0]
 
+            Circle()
+                .fill(colors[1])
+                .frame(width: 360)
+                .blur(radius: 65)
+                .offset(x: -140 + 30 * sin(phase), y: -90 + 20 * cos(phase))
+
+            Circle()
+                .fill(colors[2])
+                .frame(width: 320)
+                .blur(radius: 70)
+                .offset(x: 160 + 25 * cos(phase), y: 70 + 18 * sin(phase))
+
+            if colors.count > 3 {
                 Circle()
-                    .fill(colors[1])
-                    .frame(width: geo.size.width * 1.2)
-                    .blur(radius: 70)
-                    .offset(
-                        x: geo.size.width * (animated ? (-0.2 + 0.1 * sin(t)) : -0.2),
-                        y: geo.size.height * (animated ? (-0.25 + 0.08 * cos(t)) : -0.25)
-                    )
-
-                Circle()
-                    .fill(colors[2])
-                    .frame(width: geo.size.width * 1.0)
-                    .blur(radius: 80)
-                    .offset(
-                        x: geo.size.width * (animated ? (0.35 + 0.08 * cos(t)) : 0.35),
-                        y: geo.size.height * (animated ? (0.30 + 0.08 * sin(t)) : 0.30)
-                    )
-
-                if colors.count > 3 {
-                    Circle()
-                        .fill(colors[3])
-                        .frame(width: geo.size.width * 0.7)
-                        .blur(radius: 70)
-                        .offset(
-                            x: geo.size.width * (animated ? (-0.3 + 0.10 * sin(t + .pi / 2)) : -0.3),
-                            y: geo.size.height * (animated ? (0.40 + 0.05 * cos(t)) : 0.40)
-                        )
-                }
+                    .fill(colors[3])
+                    .frame(width: 220)
+                    .blur(radius: 60)
+                    .offset(x: -120 + 28 * sin(phase + .pi / 2),
+                            y: 90 + 15 * cos(phase))
             }
         }
+        .compositingGroup()
+        .drawingGroup()
         .onAppear {
             guard animated else { return }
-            withAnimation(.linear(duration: 18).repeatForever(autoreverses: false)) {
-                t = .pi * 2
+            withAnimation(.linear(duration: 22).repeatForever(autoreverses: false)) {
+                phase = .pi * 2
             }
         }
     }
