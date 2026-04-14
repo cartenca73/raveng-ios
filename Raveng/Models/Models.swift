@@ -55,23 +55,63 @@ struct PendingSubmitter: Codable, Identifiable, Hashable {
     }
 }
 
-struct SubmitterDetail: Codable, Equatable {
-    let id: Int
-    let slug: String
-    let name: String?
-    let email: String?
-    let phone: String?
-    let status: String?
-    let templateName: String?
-    let documentUrl: String?
-    let feaMode: String?
-    let fields: [SubmitterField]?
+// Server returns: { submitter: {...}, submission: {...}, preview_url: "..." }
+struct SubmitterDetail: Decodable, Equatable {
+    let submitter: SubmitterInfo
+    let submission: SubmissionInfo?
+    let previewUrl: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, slug, name, email, phone, status, fields
-        case templateName = "template_name"
-        case documentUrl  = "document_url"
-        case feaMode      = "fea_mode"
+        case submitter, submission
+        case previewUrl = "preview_url"
+    }
+
+    // Flat accessors used by the UI
+    var id: Int            { submitter.id }
+    var slug: String       { submitter.slug }
+    var name: String?      { submitter.name }
+    var email: String?     { submitter.email }
+    var phone: String?     { submitter.phone }
+    var feaMode: String?   { submitter.feaMode }
+    var documentUrl: String? { previewUrl }
+    var templateName: String? { submission?.name ?? submitter.documentName }
+    var status: String?    { submission?.status }
+    var fields: [SubmitterField]? { nil }  // fields arrivano via submission.fields se servono
+}
+
+struct SubmitterInfo: Decodable, Equatable {
+    let id: Int
+    let slug: String
+    let email: String?
+    let name: String?
+    let phone: String?
+    let completedAt: String?
+    let submissionId: Int?
+    let feaMode: String?
+    let documentName: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, slug, email, name, phone
+        case completedAt   = "completed_at"
+        case submissionId  = "submission_id"
+        case feaMode       = "fea_mode"
+        case documentName  = "document_name"
+    }
+}
+
+struct SubmissionInfo: Decodable, Equatable {
+    let id: Int
+    let templateId: Int?
+    let name: String?
+    let status: String?
+    let createdAt: String?
+    let completedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, status
+        case templateId   = "template_id"
+        case createdAt    = "created_at"
+        case completedAt  = "completed_at"
     }
 }
 

@@ -8,6 +8,7 @@ enum APIError: LocalizedError {
     case decoding(Error)
     case transport(Error)
     case empty
+    case cancelled
 
     var errorDescription: String? {
         switch self {
@@ -17,7 +18,13 @@ enum APIError: LocalizedError {
         case .decoding(let e):   return "Risposta non valida: \(e.localizedDescription)"
         case .transport(let e):  return "Connessione: \(e.localizedDescription)"
         case .empty:             return "Risposta vuota."
+        case .cancelled:         return nil // silenziosa
         }
+    }
+
+    var isCancelled: Bool {
+        if case .cancelled = self { return true }
+        return false
     }
 }
 
@@ -68,6 +75,10 @@ final class APIClient: ObservableObject {
             return try parse(data, http)
         } catch let e as APIError {
             throw e
+        } catch let urlErr as URLError where urlErr.code == .cancelled {
+            throw APIError.cancelled
+        } catch is CancellationError {
+            throw APIError.cancelled
         } catch {
             throw APIError.transport(error)
         }

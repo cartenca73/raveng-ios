@@ -17,6 +17,8 @@ final class AdminVM: ObservableObject {
             let (tr, sr) = try await (t, s)
             self.templates   = tr.templates
             self.submissions = sr.submissions
+        } catch let e as APIError where e.isCancelled {
+            // silenzioso
         } catch {
             self.error = error.localizedDescription
         }

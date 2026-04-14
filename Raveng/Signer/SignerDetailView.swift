@@ -11,6 +11,8 @@ final class SignerDetailVM: ObservableObject {
         loading = true; error = nil
         do {
             detail = try await APIClient.shared.send(API.Signer.detail(slug: slug))
+        } catch let e as APIError where e.isCancelled {
+            // silenzioso
         } catch {
             self.error = error.localizedDescription
         }

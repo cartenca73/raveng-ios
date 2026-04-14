@@ -12,6 +12,8 @@ final class SignerVM: ObservableObject {
             struct Resp: Decodable { let submitters: [PendingSubmitter] }
             let r: Resp = try await APIClient.shared.send(API.Signer.pending())
             items = r.submitters
+        } catch let e as APIError where e.isCancelled {
+            // silenzioso
         } catch {
             self.error = error.localizedDescription
         }
