@@ -63,6 +63,11 @@ struct MainTabView: View {
             }
             .presentationDetents([.large])
         }
+        .onReceive(NotificationCenter.default.publisher(for: .openTab)) { notif in
+            if let i = notif.object as? Int, (0...3).contains(i) {
+                withAnimation { selection = i }
+            }
+        }
     }
 
     private func handleSpotlight(_ dest: SpotlightDestination) {

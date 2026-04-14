@@ -33,6 +33,7 @@ struct AdminHomeView: View {
     @State private var showNewSubmission = false
     @State private var pickSubmissionTemplate = false
     @State private var showDocumentPicker = false
+    @State private var showCameraScan = false
     @State private var uploadingPDF = false
     @State private var uploadError: String?
     @State private var openEditorForTemplateId: Int?
@@ -71,14 +72,24 @@ struct AdminHomeView: View {
 
                         // Quick actions
                         VStack(spacing: 10) {
-                            GradientButton(title: "Carica un PDF e invia",
-                                           systemImage: "square.and.arrow.up.fill",
-                                           gradient: LinearGradient(
-                                            colors: [BrandColor.violet, BrandColor.brightBlue, BrandColor.cyan],
-                                            startPoint: .leading, endPoint: .trailing
-                                           ),
-                                           isLoading: uploadingPDF) {
-                                showDocumentPicker = true
+                            HStack(spacing: 10) {
+                                GradientButton(title: "Carica PDF",
+                                               systemImage: "square.and.arrow.up.fill",
+                                               gradient: LinearGradient(
+                                                colors: [BrandColor.violet, BrandColor.brightBlue],
+                                                startPoint: .leading, endPoint: .trailing
+                                               ),
+                                               isLoading: uploadingPDF) {
+                                    showDocumentPicker = true
+                                }
+                                GradientButton(title: "Scansiona",
+                                               systemImage: "doc.viewfinder.fill",
+                                               gradient: LinearGradient(
+                                                colors: [BrandColor.teal, BrandColor.cyan],
+                                                startPoint: .leading, endPoint: .trailing
+                                               )) {
+                                    showCameraScan = true
+                                }
                             }
                             HStack(spacing: 10) {
                                 GradientButton(title: "Nuovo template",
@@ -175,6 +186,18 @@ struct AdminHomeView: View {
         }) { t in
             WebAdminView(path: "/templates/\(t.id)/submissions/new",
                          title: "Nuovo invio")
+        }
+        .fullScreenCover(isPresented: $showCameraScan) {
+            DocumentCameraView { result in
+                showCameraScan = false
+                switch result {
+                case .success(let url):
+                    Task { await uploadPDF(url) }
+                case .failure(let e):
+                    uploadError = e.localizedDescription
+                }
+            }
+            .ignoresSafeArea()
         }
         .fileImporter(isPresented: $showDocumentPicker,
                       allowedContentTypes: [.pdf],

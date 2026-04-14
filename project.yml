@@ -10,8 +10,8 @@ settings:
   base:
     SWIFT_VERSION: "5.9"
     DEVELOPMENT_TEAM: ""    # da impostare in Xcode
-    MARKETING_VERSION: "2.1.0"
-    CURRENT_PROJECT_VERSION: "3"
+    MARKETING_VERSION: "2.2.0"
+    CURRENT_PROJECT_VERSION: "4"
     ENABLE_BITCODE: NO
     SWIFT_STRICT_CONCURRENCY: minimal
 
