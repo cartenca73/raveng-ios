@@ -61,7 +61,14 @@ struct ProfileView: View {
                     HeroHeader(
                         title: auth.currentUser?.fullName ?? "Profilo",
                         subtitle: auth.currentUser?.email ?? "",
-                        systemImage: "person.crop.circle.fill"
+                        systemImage: "person.crop.circle.fill",
+                        gradientColors: [
+                            BrandColor.navy,
+                            BrandColor.deepBlue,
+                            BrandColor.violet,
+                            BrandColor.brightBlue
+                        ],
+                        eyebrow: auth.currentUser?.role?.uppercased() ?? "ACCOUNT"
                     )
                     AppCard {
                         VStack(alignment: .leading, spacing: 14) {

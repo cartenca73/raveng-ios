@@ -43,15 +43,20 @@ struct PendingSubmitter: Codable, Identifiable, Hashable {
     let slug: String
     let name: String?
     let email: String?
-    let templateName: String?
+    let documentName: String?
     let createdAt: String?
     let feaMode: String?
+    let completedAt: String?
+
+    // UI compat
+    var templateName: String? { documentName }
 
     enum CodingKeys: String, CodingKey {
         case id, slug, name, email
-        case templateName = "template_name"
+        case documentName = "document_name"
         case createdAt    = "created_at"
         case feaMode      = "fea_mode"
+        case completedAt  = "completed_at"
     }
 }
 

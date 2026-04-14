@@ -49,7 +49,14 @@ struct VerifyHomeView: View {
                         HeroHeader(
                             title: "Verifica blockchain",
                             subtitle: "Carica un PDF firmato per controllarne l'autenticità",
-                            systemImage: "checkmark.shield.fill"
+                            systemImage: "checkmark.shield.fill",
+                            gradientColors: [
+                                BrandColor.deepBlue,
+                                BrandColor.midBlue,
+                                BrandColor.teal,
+                                BrandColor.cyan
+                            ],
+                            eyebrow: "OPENTIMESTAMPS · BITCOIN"
                         )
 
                         AppCard {
