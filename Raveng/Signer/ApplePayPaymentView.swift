@@ -58,7 +58,7 @@ final class ApplePayVM: NSObject, ObservableObject, PKPaymentAuthorizationContro
         didAuthorizePayment payment: PKPayment,
         handler completion: @escaping (PKPaymentAuthorizationResult) -> Void
     ) {
-        guard let checkoutId = checkout?.checkoutId else {
+        guard checkout?.checkoutId != nil else {
             completion(.init(status: .failure, errors: nil)); return
         }
 

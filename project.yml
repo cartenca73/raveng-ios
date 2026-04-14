@@ -30,10 +30,18 @@ targets:
         CFBundleDisplayName: RAVENG
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UIRequiresFullScreen: true
         UILaunchScreen:
-          UIColorName: ""
+          UIImageName: ""
+          UIImageRespectsSafeAreaInsets: true
+          UIColorName: BrandPrimary
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         NSCameraUsageDescription: "RAVENG usa la fotocamera per scansionare documenti da firmare."
         NSFaceIDUsageDescription: "RAVENG usa Face ID per proteggere l'accesso ai tuoi documenti firmati."
         NSPhotoLibraryUsageDescription: "RAVENG può importare PDF dalla tua libreria per la firma."

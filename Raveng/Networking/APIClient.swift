@@ -143,7 +143,7 @@ final class APIClient: ObservableObject {
             let refresh_token: String?
         }
         do {
-            var url = APIClient.baseURL.appendingPathComponent("auth/refresh")
+            let url = APIClient.baseURL.appendingPathComponent("auth/refresh")
             var r = URLRequest(url: url)
             r.httpMethod = "POST"
             r.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -153,7 +153,6 @@ final class APIClient: ObservableObject {
             let tok = try JSONDecoder().decode(Resp.self, from: data)
             KeychainService.set(tok.access_token, for: .accessToken)
             if let rt = tok.refresh_token { KeychainService.set(rt, for: .refreshToken) }
-            _ = url
             return true
         } catch {
             return false
