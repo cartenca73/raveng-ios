@@ -48,7 +48,9 @@ final class BiometricGate: ObservableObject {
 
     func applicationWillEnterForeground() {
         guard enabled, canUseBiometrics else { return }
-        let elapsed = wentBackgroundAt.map { Date().timeIntervalSince($0) } ?? 9999
+        // Lock SOLO se siamo davvero andati in background (non solo inactive per FaceID prompt / Control Center)
+        guard let went = wentBackgroundAt else { return }
+        let elapsed = Date().timeIntervalSince(went)
         if elapsed > Double(lockAfterSeconds) {
             isLocked = true
         }

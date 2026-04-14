@@ -38,27 +38,30 @@ struct FloatingTabBar: View {
                         Haptics.soft()
                     }
                 } label: {
-                    ZStack {
+                    HStack(spacing: 6) {
+                        Image(systemName: tab.systemImage)
+                            .font(.system(size: 16, weight: .semibold))
                         if selection == tab.id {
-                            Capsule()
-                                .fill(BrandGradient.primary)
-                                .matchedGeometryEffect(id: "pill", in: ns)
-                                .shadow(color: BrandColor.deepBlue.opacity(0.30),
-                                        radius: 10, x: 0, y: 6)
+                            Text(tab.title)
+                                .font(.system(size: 13, weight: .bold, design: .rounded))
+                                .fixedSize(horizontal: true, vertical: false)
+                                .transition(.opacity.combined(with: .scale))
                         }
-                        HStack(spacing: 6) {
-                            Image(systemName: tab.systemImage)
-                                .font(.system(size: 16, weight: .semibold))
+                    }
+                    .foregroundStyle(selection == tab.id ? Color.white : BrandColor.mute)
+                    .padding(.horizontal, selection == tab.id ? 14 : 10)
+                    .padding(.vertical, 10)
+                    .background(
+                        Group {
                             if selection == tab.id {
-                                Text(tab.title)
-                                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                                    .fixedSize(horizontal: true, vertical: false)
+                                Capsule()
+                                    .fill(BrandGradient.primary)
+                                    .matchedGeometryEffect(id: "pill", in: ns)
+                                    .shadow(color: BrandColor.deepBlue.opacity(0.30),
+                                            radius: 8, x: 0, y: 4)
                             }
                         }
-                        .foregroundStyle(selection == tab.id ? Color.white : BrandColor.mute)
-                        .padding(.horizontal, selection == tab.id ? 14 : 10)
-                        .padding(.vertical, 10)
-                    }
+                    )
                 }
                 .buttonStyle(.plain)
             }
