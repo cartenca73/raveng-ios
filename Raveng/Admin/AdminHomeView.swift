@@ -74,7 +74,10 @@ struct AdminHomeView: View {
                                 } else {
                                     LazyVStack(spacing: 12) {
                                         ForEach(Array(vm.templates.prefix(6).enumerated()), id: \.element.id) { idx, t in
-                                            TemplateDocRow(template: t, index: idx)
+                                            NavigationLink(value: t) {
+                                                TemplateDocRow(template: t, index: idx)
+                                            }
+                                            .buttonStyle(.plain)
                                         }
                                     }
                                     .padding(.horizontal, 16)
@@ -107,6 +110,9 @@ struct AdminHomeView: View {
                 .refreshable { await vm.load() }
             }
             .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(for: TemplateSummary.self) { t in
+                TemplateDetailView(template: t)
+            }
         }
         .task { await vm.load() }
     }

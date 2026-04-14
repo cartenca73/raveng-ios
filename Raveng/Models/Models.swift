@@ -131,20 +131,59 @@ struct SubmitterField: Codable, Identifiable, Equatable {
 }
 
 // MARK: - Templates / Submissions (admin)
-struct TemplateSummary: Codable, Identifiable, Equatable {
+struct TemplateSummary: Codable, Identifiable, Hashable {
     let id: Int
     let name: String
     let createdAt: String?
-    let submissionsCount: Int?
+    let submittersCount: Int?
+    let fieldsCount: Int?
+
+    // UI compat
+    var submissionsCount: Int? { submittersCount }
 
     enum CodingKeys: String, CodingKey {
         case id, name
         case createdAt        = "created_at"
-        case submissionsCount = "submissions_count"
+        case submittersCount  = "submitters_count"
+        case fieldsCount      = "fields_count"
     }
 }
 
-struct SubmissionSummary: Codable, Identifiable, Equatable {
+struct TemplateDetail: Decodable, Equatable {
+    let template: TemplateInfo
+    let stats: TemplateStats
+    let submissions: [SubmissionSummary]
+}
+
+struct TemplateInfo: Decodable, Equatable {
+    let id: Int
+    let name: String
+    let slug: String?
+    let createdAt: String?
+    let updatedAt: String?
+    let archivedAt: String?
+    let fieldsCount: Int?
+    let submittersCount: Int?
+    let author: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, slug, author
+        case createdAt       = "created_at"
+        case updatedAt       = "updated_at"
+        case archivedAt      = "archived_at"
+        case fieldsCount     = "fields_count"
+        case submittersCount = "submitters_count"
+    }
+}
+
+struct TemplateStats: Decodable, Equatable {
+    let total: Int
+    let completed: Int
+    let pending: Int
+    let submitters: Int
+}
+
+struct SubmissionSummary: Codable, Identifiable, Hashable {
     let id: Int
     let templateName: String?
     let status: String?

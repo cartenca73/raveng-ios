@@ -60,6 +60,18 @@ enum API {
     // MARK: Admin
     enum Admin {
         static func templates() -> APIRequest { APIRequest(path: "admin/templates") }
+        static func templateDetail(id: Int) -> APIRequest {
+            APIRequest(path: "admin/templates/\(id)")
+        }
+        static func templateArchive(id: Int) -> APIRequest {
+            APIRequest(path: "admin/templates/\(id)/archive", method: .POST)
+        }
+        static func templateUnarchive(id: Int) -> APIRequest {
+            APIRequest(path: "admin/templates/\(id)/unarchive", method: .POST)
+        }
+        static func templateDuplicate(id: Int) -> APIRequest {
+            APIRequest(path: "admin/templates/\(id)/duplicate", method: .POST)
+        }
         static func submissions(page: Int = 1) -> APIRequest {
             APIRequest(path: "admin/submissions", query: ["page": "\(page)"])
         }

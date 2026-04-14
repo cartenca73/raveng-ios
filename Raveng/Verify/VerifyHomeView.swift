@@ -2,6 +2,17 @@ import SwiftUI
 import CryptoKit
 import UniformTypeIdentifiers
 
+private func readDataCoordinated(from url: URL) throws -> Data {
+    var coordErr: NSError?
+    var result: Result<Data, Error> = .failure(CocoaError(.fileReadUnknown))
+    NSFileCoordinator().coordinate(readingItemAt: url, options: [.withoutChanges], error: &coordErr) { newURL in
+        do { result = .success(try Data(contentsOf: newURL)) }
+        catch { result = .failure(error) }
+    }
+    if let e = coordErr { throw e }
+    return try result.get()
+}
+
 @MainActor
 final class VerifyVM: ObservableObject {
     @Published var loading = false
@@ -11,10 +22,13 @@ final class VerifyVM: ObservableObject {
     @Published var computedHash: String?
 
     func verify(fileURL: URL) async {
-        defer { _ = fileURL.startAccessingSecurityScopedResource() }
+        let didStartAccess = fileURL.startAccessingSecurityScopedResource()
+        defer { if didStartAccess { fileURL.stopAccessingSecurityScopedResource() } }
+
         loading = true; error = nil; info = nil; computedHash = nil
         do {
-            let data = try Data(contentsOf: fileURL)
+            // Usa NSFileCoordinator per leggere in modo sicuro anche file su iCloud Drive
+            let data = try readDataCoordinated(from: fileURL)
             let hash = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
             self.computedHash = hash
             self.pickedFileName = fileURL.lastPathComponent
