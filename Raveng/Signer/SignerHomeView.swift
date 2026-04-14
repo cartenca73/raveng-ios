@@ -53,12 +53,14 @@ struct SignerHomeView: View {
                             }
                             .padding(.horizontal, 16)
                         } else if vm.items.isEmpty {
-                            EmptyState(
-                                systemImage: "tray",
+                            AnimatedEmptyState(
+                                illustration: .inbox,
                                 title: "Tutto pulito!",
-                                subtitle: "Non hai documenti in attesa di firma."
+                                subtitle: "Non hai documenti in attesa di firma.",
+                                actionTitle: "Ricarica",
+                                action: { Task { await vm.load() } }
                             )
-                            .frame(minHeight: 320)
+                            .frame(minHeight: 380)
                         } else {
                             LazyVStack(spacing: 12) {
                                 ForEach(Array(vm.items.enumerated()), id: \.element.id) { idx, item in
@@ -69,7 +71,7 @@ struct SignerHomeView: View {
                                 }
                             }
                             .padding(.horizontal, 16)
-                            .padding(.bottom, 24)
+                            .padding(.bottom, 90)
                         }
                     }
                 }

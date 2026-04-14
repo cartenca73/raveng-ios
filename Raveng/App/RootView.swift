@@ -2,10 +2,14 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject var auth: AuthService
+    @AppStorage("onboarding.completed") private var onboardingDone = false
 
     var body: some View {
         Group {
-            if auth.isAuthenticated {
+            if !onboardingDone {
+                OnboardingView()
+                    .transition(.opacity)
+            } else if auth.isAuthenticated {
                 MainTabView()
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
             } else {
@@ -14,6 +18,7 @@ struct RootView: View {
             }
         }
         .animation(.spring(response: 0.5, dampingFraction: 0.85), value: auth.isAuthenticated)
+        .animation(.easeInOut, value: onboardingDone)
     }
 }
 
@@ -21,31 +26,27 @@ struct MainTabView: View {
     @EnvironmentObject var auth: AuthService
     @State private var selection: Int = 0
 
+    private let tabs: [FloatingTab] = [
+        .init(id: 0, title: "Firma",      systemImage: "signature"),
+        .init(id: 1, title: "Admin",      systemImage: "rectangle.stack.fill"),
+        .init(id: 2, title: "Verifica",   systemImage: "checkmark.shield.fill"),
+        .init(id: 3, title: "Profilo",    systemImage: "person.crop.circle.fill")
+    ]
+
     var body: some View {
-        TabView(selection: $selection) {
-            SignerHomeView()
-                .tabItem {
-                    Label("Da firmare", systemImage: "signature")
+        ZStack(alignment: .bottom) {
+            Group {
+                switch selection {
+                case 0: SignerHomeView()
+                case 1: AdminHomeView()
+                case 2: VerifyHomeView()
+                default: ProfileView()
                 }
-                .tag(0)
+            }
+            .transition(.opacity)
 
-            AdminHomeView()
-                .tabItem {
-                    Label("Amministra", systemImage: "rectangle.stack.fill")
-                }
-                .tag(1)
-
-            VerifyHomeView()
-                .tabItem {
-                    Label("Verifica", systemImage: "checkmark.shield.fill")
-                }
-                .tag(2)
-
-            ProfileView()
-                .tabItem {
-                    Label("Profilo", systemImage: "person.crop.circle.fill")
-                }
-                .tag(3)
+            FloatingTabBar(tabs: tabs, selection: $selection)
+                .padding(.bottom, 8)
         }
     }
 }
@@ -121,7 +122,7 @@ struct ProfileView: View {
                             Task { await auth.logout() }
                         }
                         .padding(.horizontal, 16)
-                        .padding(.bottom, 20)
+                        .padding(.bottom, 100)
                     }
                 }
             }

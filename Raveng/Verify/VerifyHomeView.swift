@@ -120,7 +120,7 @@ struct VerifyHomeView: View {
                             ResultCard(info: info).padding(.horizontal, 16)
                         }
                     }
-                    .padding(.bottom, 30)
+                    .padding(.bottom, 100)
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
