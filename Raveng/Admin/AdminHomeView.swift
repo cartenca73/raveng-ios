@@ -9,6 +9,16 @@ final class AdminVM: ObservableObject {
 
     func load() async {
         loading = true; error = nil
+        // Cache first
+        if templates.isEmpty,
+           let t = await OfflineCache.shared.load([TemplateSummary].self, key: "admin_templates") {
+            templates = t
+        }
+        if submissions.isEmpty,
+           let s = await OfflineCache.shared.load([SubmissionSummary].self, key: "admin_submissions") {
+            submissions = s
+        }
+        // Network
         do {
             struct TR: Decodable { let templates: [TemplateSummary] }
             struct SR: Decodable { let submissions: [SubmissionSummary] }
@@ -17,10 +27,14 @@ final class AdminVM: ObservableObject {
             let (tr, sr) = try await (t, s)
             self.templates   = tr.templates
             self.submissions = sr.submissions
+            await OfflineCache.shared.save(tr.templates, key: "admin_templates")
+            await OfflineCache.shared.save(sr.submissions, key: "admin_submissions")
         } catch let e as APIError where e.isCancelled {
             // silenzioso
         } catch {
-            self.error = error.localizedDescription
+            if templates.isEmpty && submissions.isEmpty {
+                self.error = error.localizedDescription
+            }
         }
         loading = false
     }

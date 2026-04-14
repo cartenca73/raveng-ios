@@ -6,6 +6,7 @@ struct RavengApp: App {
     @StateObject private var api     = APIClient.shared
     @StateObject private var tod     = TimeOfDay.shared
     @StateObject private var gate    = BiometricGate.shared
+    @StateObject private var reach   = Reachability.shared
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -30,8 +31,15 @@ struct RavengApp: App {
                 .environmentObject(api)
                 .environmentObject(tod)
                 .environmentObject(gate)
+                .environmentObject(reach)
                 .preferredColorScheme(.light)
                 .tint(BrandColor.brightBlue)
+                .overlay(alignment: .top) {
+                    if !reach.isOnline {
+                        OfflineBanner()
+                            .padding(.top, 2)
+                    }
+                }
                 .overlay {
                     if gate.isLocked && auth.isAuthenticated {
                         BiometricLockOverlay()
@@ -40,6 +48,7 @@ struct RavengApp: App {
                     }
                 }
                 .animation(.easeInOut(duration: 0.3), value: gate.isLocked)
+                .animation(.easeInOut(duration: 0.25), value: reach.isOnline)
         }
         .onChange(of: scenePhase) { _, new in
             switch new {

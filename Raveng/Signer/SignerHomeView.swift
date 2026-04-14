@@ -6,16 +6,25 @@ final class SignerVM: ObservableObject {
     @Published var loading = false
     @Published var error: String?
 
+    private let cacheKey = "signer_pending"
+
     func load() async {
         loading = true; error = nil
+        // 1. Mostra cache subito (se esiste)
+        if items.isEmpty, let cached = await OfflineCache.shared.load([PendingSubmitter].self, key: cacheKey) {
+            items = cached
+        }
+        // 2. Rete
         do {
             struct Resp: Decodable { let submitters: [PendingSubmitter] }
             let r: Resp = try await APIClient.shared.send(API.Signer.pending())
             items = r.submitters
+            await OfflineCache.shared.save(r.submitters, key: cacheKey)
         } catch let e as APIError where e.isCancelled {
             // silenzioso
         } catch {
-            self.error = error.localizedDescription
+            // Se abbiamo cache, non mostriamo errore (siamo già offline-friendly)
+            if items.isEmpty { self.error = error.localizedDescription }
         }
         loading = false
     }
