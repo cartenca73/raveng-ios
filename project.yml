@@ -27,7 +27,7 @@ targets:
     info:
       path: Raveng/Resources/Info.plist
       properties:
-        CFBundleDisplayName: RAVENG
+        CFBundleDisplayName: FirmaCDC
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UIRequiresFullScreen: true
@@ -42,9 +42,9 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        NSCameraUsageDescription: "RAVENG usa la fotocamera per scansionare documenti da firmare."
-        NSFaceIDUsageDescription: "RAVENG usa Face ID per proteggere l'accesso ai tuoi documenti firmati."
-        NSPhotoLibraryUsageDescription: "RAVENG può importare PDF dalla tua libreria per la firma."
+        NSCameraUsageDescription: "FirmaCDC usa la fotocamera per scansionare documenti da firmare."
+        NSFaceIDUsageDescription: "FirmaCDC usa Face ID per proteggere l'accesso ai tuoi documenti firmati."
+        NSPhotoLibraryUsageDescription: "FirmaCDC può importare PDF dalla tua libreria per la firma."
         ITSAppUsesNonExemptEncryption: false
     entitlements:
       path: Raveng/Resources/Raveng.entitlements

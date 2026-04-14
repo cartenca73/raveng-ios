@@ -36,7 +36,7 @@ final class ApplePayVM: NSObject, ObservableObject, PKPaymentAuthorizationContro
         req.countryCode = "IT"
         req.currencyCode = c.currency
         req.paymentSummaryItems = [
-            PKPaymentSummaryItem(label: "RAVENG — Certificazione CDC",
+            PKPaymentSummaryItem(label: "FirmaCDC — Certificazione CDC",
                                  amount: NSDecimalNumber(value: c.amount))
         ]
 

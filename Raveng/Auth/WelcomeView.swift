@@ -39,10 +39,10 @@ struct WelcomeView: View {
                 .opacity(animateLogo ? 1 : 0)
 
                 VStack(spacing: 8) {
-                    Text("RAVENG")
+                    Text("FirmaCDC")
                         .font(.system(size: 44, weight: .heavy, design: .rounded))
                         .foregroundStyle(.white)
-                        .tracking(4)
+                        .tracking(2)
                     Text("Firma digitale certificata")
                         .font(BrandFont.body(16))
                         .foregroundStyle(.white.opacity(0.9))
@@ -123,7 +123,7 @@ struct EmailLoginView: View {
             Text("Accedi")
                 .font(BrandFont.display(28))
                 .foregroundStyle(BrandColor.ink)
-            Text("Inserisci le credenziali del tuo account RAVENG.")
+            Text("Inserisci le credenziali del tuo account FirmaCDC.")
                 .font(BrandFont.body(14))
                 .foregroundStyle(BrandColor.mute)
 

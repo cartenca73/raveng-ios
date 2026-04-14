@@ -23,7 +23,7 @@ final class VerifyVM: ObservableObject {
         } catch let e as APIError {
             switch e {
             case .http(404, _):
-                self.error = "Documento NON trovato sulla blockchain. Non risulta firmato dal sistema RAVENG."
+                self.error = "Documento NON trovato sulla blockchain. Non risulta firmato dal sistema FirmaCDC."
             default:
                 self.error = e.localizedDescription
             }

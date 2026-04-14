@@ -36,7 +36,7 @@ struct SignerHomeView: View {
                             title: "Da firmare",
                             subtitle: "I documenti che ti aspettano",
                             systemImage: "signature",
-                            eyebrow: vm.items.isEmpty ? "RAVENG" : "\(vm.items.count) in attesa"
+                            eyebrow: vm.items.isEmpty ? "FIRMACDC" : "\(vm.items.count) in attesa"
                         )
 
                         if vm.loading && vm.items.isEmpty {
