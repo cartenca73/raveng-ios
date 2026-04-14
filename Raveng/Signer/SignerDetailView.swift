@@ -10,13 +10,17 @@ final class SignerDetailVM: ObservableObject {
     func load(slug: String) async {
         loading = true; error = nil
         do {
-            detail = try await APIClient.shared.send(API.Signer.detail(slug: slug))
+            let result = try await APIClient.shared.send(API.Signer.detail(slug: slug), as: SubmitterDetail.self)
+            // Check cancellation prima di pubblicare il risultato
+            guard !Task.isCancelled else { return }
+            detail = result
         } catch let e as APIError where e.isCancelled {
             // silenzioso
         } catch {
+            guard !Task.isCancelled else { return }
             self.error = error.localizedDescription
         }
-        loading = false
+        if !Task.isCancelled { loading = false }
     }
 
     func sign(slug: String, signaturePNG: Data) async -> Bool {
@@ -26,6 +30,8 @@ final class SignerDetailVM: ObservableObject {
                 API.Signer.sign(slug: slug, signaturePNGBase64: b64, values: nil)
             )
             return true
+        } catch let e as APIError where e.isCancelled {
+            return false
         } catch {
             self.error = error.localizedDescription
             return false
@@ -190,12 +196,25 @@ import PDFKit
 
 struct PDFRemoteView: UIViewRepresentable {
     let url: URL
+    @Binding var loadError: String?
+
+    init(url: URL, loadError: Binding<String?> = .constant(nil)) {
+        self.url = url
+        self._loadError = loadError
+    }
+
     func makeUIView(context: Context) -> PDFView {
-        let v = PDFView(); v.autoScales = true; v.backgroundColor = .clear
-        Task.detached {
-            if let doc = PDFDocument(url: url) {
-                await MainActor.run { v.document = doc }
+        let v = PDFView()
+        v.autoScales = true
+        v.backgroundColor = .clear
+        Task.detached { [weak v] in
+            // Carica i bytes → crea il doc fuori dal main thread
+            guard let data = try? Data(contentsOf: url),
+                  let doc  = PDFDocument(data: data) else {
+                await MainActor.run { self.loadError = "Impossibile caricare il PDF" }
+                return
             }
+            await MainActor.run { [weak v] in v?.document = doc }
         }
         return v
     }

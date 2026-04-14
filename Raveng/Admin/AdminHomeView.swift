@@ -186,12 +186,17 @@ struct AdminHomeView: View {
         }) {
             WebAdminView(path: "/templates/new", title: "Nuovo template")
         }
-        .sheet(isPresented: $pickSubmissionTemplate) {
+        .sheet(isPresented: $pickSubmissionTemplate, onDismiss: {
+            // Alla chiusura della sheet, se l'utente ha scelto un template,
+            // apriamo la WebView di invio. Evita magic-number timing.
+            if let t = pendingSubmissionTemplate {
+                pendingSubmissionTemplate = nil
+                pickedTemplateForSubmission = t
+            }
+        }) {
             TemplatePickerSheet(templates: vm.templates) { t in
+                pendingSubmissionTemplate = t
                 pickSubmissionTemplate = false
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                    self.pickedTemplateForSubmission = t
-                }
             }
             .presentationDetents([.medium, .large])
         }
@@ -235,10 +240,17 @@ struct AdminHomeView: View {
     private struct TemplateIdWrapper: Identifiable { let id: Int }
 
     @State private var pickedTemplateForSubmission: TemplateSummary?
+    @State private var pendingSubmissionTemplate: TemplateSummary?
 
     private func uploadPDF(_ url: URL) async {
         uploadingPDF = true; uploadError = nil
-        defer { uploadingPDF = false }
+        defer {
+            uploadingPDF = false
+            // Pulisci il PDF temporaneo se è nella temp dir (document camera)
+            if url.path.contains(FileManager.default.temporaryDirectory.path) {
+                try? FileManager.default.removeItem(at: url)
+            }
+        }
         struct Resp: Decodable {
             let ok: Bool
             let template_id: Int

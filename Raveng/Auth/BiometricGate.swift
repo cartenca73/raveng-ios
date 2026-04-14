@@ -78,10 +78,35 @@ final class BiometricGate: ObservableObject {
                 Haptics.success()
             }
             return ok
+        } catch let error as LAError {
+            lastAuthError = userFriendlyMessage(for: error)
+            Haptics.error()
+            return false
         } catch {
             lastAuthError = error.localizedDescription
             Haptics.error()
             return false
+        }
+    }
+
+    private func userFriendlyMessage(for err: LAError) -> String {
+        switch err.code {
+        case .userCancel, .appCancel, .systemCancel:
+            return "Autenticazione annullata. Tocca 'Sblocca' per riprovare."
+        case .userFallback:
+            return "Usa il codice del dispositivo per continuare."
+        case .biometryLockout:
+            return "\(biometricKindName) bloccato dopo troppi tentativi. Sblocca con il codice del dispositivo, poi riprova."
+        case .biometryNotAvailable:
+            return "Biometria non disponibile su questo dispositivo."
+        case .biometryNotEnrolled:
+            return "Nessun volto/impronta registrati. Configura \(biometricKindName) in Impostazioni."
+        case .passcodeNotSet:
+            return "Nessun codice dispositivo impostato. Imposta un codice in Impostazioni."
+        case .authenticationFailed:
+            return "Autenticazione non riuscita. Riprova."
+        default:
+            return err.localizedDescription
         }
     }
 }

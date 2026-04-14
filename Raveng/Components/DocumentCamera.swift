@@ -17,7 +17,16 @@ struct DocumentCameraView: UIViewControllerRepresentable {
 
     final class Coord: NSObject, VNDocumentCameraViewControllerDelegate {
         let onComplete: (Result<URL, Error>) -> Void
+        private(set) var pdfURL: URL?
+
         init(onComplete: @escaping (Result<URL, Error>) -> Void) { self.onComplete = onComplete }
+
+        deinit {
+            // Pulisci il PDF temporaneo se il caller non l'ha consumato
+            if let u = pdfURL {
+                try? FileManager.default.removeItem(at: u)
+            }
+        }
 
         func documentCameraViewController(_ controller: VNDocumentCameraViewController,
                                            didFinishWith scan: VNDocumentCameraScan) {
@@ -33,6 +42,7 @@ struct DocumentCameraView: UIViewControllerRepresentable {
             let url = FileManager.default.temporaryDirectory
                 .appendingPathComponent("Scan-\(Int(Date().timeIntervalSince1970)).pdf")
             if pdf.write(to: url) {
+                self.pdfURL = url  // tracciato per cleanup se deallocato prima dell'upload
                 onComplete(.success(url))
             } else {
                 onComplete(.failure(NSError(domain: "DocCam", code: 1,

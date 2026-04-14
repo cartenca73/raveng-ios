@@ -31,7 +31,11 @@ final class SpotlightVM: ObservableObject {
         task?.cancel()
         task = Task { [weak self] in
             guard let self else { return }
-            try? await Task.sleep(nanoseconds: 180_000_000) // debounce 180ms
+            do {
+                try await Task.sleep(nanoseconds: 180_000_000) // debounce 180ms
+            } catch {
+                return // cancellato
+            }
             guard !Task.isCancelled else { return }
             self.performSearch(q: self.query, pending: pending, templates: templates)
         }

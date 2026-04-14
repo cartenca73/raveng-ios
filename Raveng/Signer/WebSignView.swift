@@ -115,16 +115,23 @@ struct WebSignViewRepresentable: UIViewRepresentable {
             self.onCompleted = onCompleted
         }
 
+        deinit {
+            progressObs?.invalidate()
+        }
+
         func observe(webView: WKWebView) {
             progressObs = webView.observe(\.estimatedProgress, options: .new) { [weak self] wv, _ in
-                Task { @MainActor in
-                    self?.progress = wv.estimatedProgress
+                guard let self else { return }
+                let p = wv.estimatedProgress
+                Task { @MainActor [weak self] in
+                    self?.progress = p
                 }
             }
         }
 
         func invalidate(webView: WKWebView) {
             progressObs?.invalidate(); progressObs = nil
+            webView.navigationDelegate = nil
             webView.stopLoading()
         }
 
@@ -138,8 +145,7 @@ struct WebSignViewRepresentable: UIViewRepresentable {
                 progress = 0
             }
             // Detect completion via URL path heuristic
-            if let path = webView.url?.path.lowercased(),
-               path.contains("/completed") || path.contains("/cdc/") && path.contains("/completed") {
+            if let path = webView.url?.path.lowercased(), path.contains("/completed") {
                 onCompleted()
             }
         }

@@ -408,13 +408,19 @@ private struct AdminWebRepresentable: UIViewRepresentable {
             self._isLoading = isLoading
         }
 
+        deinit { obs?.invalidate() }
+
         func observe(_ wv: WKWebView) {
             obs = wv.observe(\.estimatedProgress, options: .new) { [weak self] wv, _ in
-                Task { @MainActor in self?.progress = wv.estimatedProgress }
+                guard self != nil else { return }
+                let p = wv.estimatedProgress
+                Task { @MainActor [weak self] in self?.progress = p }
             }
         }
         func invalidate(_ wv: WKWebView) {
-            obs?.invalidate(); obs = nil; wv.stopLoading()
+            obs?.invalidate(); obs = nil
+            wv.navigationDelegate = nil
+            wv.stopLoading()
         }
         func webView(_ wv: WKWebView, didStartProvisionalNavigation nav: WKNavigation!) {
             Task { @MainActor in isLoading = true }

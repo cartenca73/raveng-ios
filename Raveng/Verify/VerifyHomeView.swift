@@ -23,6 +23,9 @@ final class VerifyVM: ObservableObject {
     @Published var summary: DocumentSummary.Summary?
 
     func verify(fileURL: URL) async {
+        // Evita doppi tap / richieste parallele
+        guard !loading else { return }
+
         let didStartAccess = fileURL.startAccessingSecurityScopedResource()
         defer { if didStartAccess { fileURL.stopAccessingSecurityScopedResource() } }
 

@@ -28,24 +28,24 @@ struct DetectedField: Identifiable, Codable {
 
 enum PDFOCRScanner {
 
-    // Patterns for Italian common labels -> field types
+    // Patterns for Italian common labels -> field types (validated at init).
     private static let patterns: [(NSRegularExpression, String)] = {
-        func re(_ p: String) -> NSRegularExpression {
-            try! NSRegularExpression(pattern: p, options: .caseInsensitive)
-        }
-        return [
-            (re(#"\b(nome|cognome|nominativo|ragione\s+sociale)\s*[:_]?"#),                 "text"),
-            (re(#"\b(e[- ]?mail|posta)\s*[:_]?"#),                                         "text"),
-            (re(#"\b(telefono|cellulare|mobile|phone|tel\.?)\s*[:_]?"#),                   "text"),
-            (re(#"\b(indirizzo|via|piazza|corso)\s*[:_]?"#),                               "text"),
-            (re(#"\b(citt[àa]|comune|localit[àa])\s*[:_]?"#),                              "text"),
-            (re(#"\b(cap)\s*[:_]?"#),                                                      "text"),
-            (re(#"\b(codice\s+fiscale|c\.?f\.?|partita\s+iva|p\.?iva)\s*[:_]?"#),          "text"),
-            (re(#"\b(data)\s*[:_]?"#),                                                     "date"),
-            (re(#"\b(luogo\s+e\s+data|data\s+e\s+luogo)\s*[:_]?"#),                        "date"),
-            (re(#"\b(firma|signature|sottoscrizione)\s*[:_]?"#),                           "signature"),
-            (re(#"\b(accetto|dichiaro|conferma|acconsento|consento)\b"#),                  "checkbox"),
+        let sources: [(String, String)] = [
+            (#"\b(nome|cognome|nominativo|ragione\s+sociale)\s*[:_]?"#,                 "text"),
+            (#"\b(e[- ]?mail|posta)\s*[:_]?"#,                                          "text"),
+            (#"\b(telefono|cellulare|mobile|phone|tel\.?)\s*[:_]?"#,                    "text"),
+            (#"\b(indirizzo|via|piazza|corso)\s*[:_]?"#,                                "text"),
+            (#"\b(citt[àa]|comune|localit[àa])\s*[:_]?"#,                               "text"),
+            (#"\b(cap)\s*[:_]?"#,                                                       "text"),
+            (#"\b(codice\s+fiscale|c\.?f\.?|partita\s+iva|p\.?iva)\s*[:_]?"#,           "text"),
+            (#"\b(data)\s*[:_]?"#,                                                      "date"),
+            (#"\b(luogo\s+e\s+data|data\s+e\s+luogo)\s*[:_]?"#,                         "date"),
+            (#"\b(firma|signature|sottoscrizione)\s*[:_]?"#,                            "signature"),
+            (#"\b(accetto|dichiaro|conferma|acconsento|consento)\b"#,                   "checkbox")
         ]
+        return sources.compactMap { (p, kind) in
+            (try? NSRegularExpression(pattern: p, options: .caseInsensitive)).map { ($0, kind) }
+        }
     }()
 
     /// Scans each page of the PDF and returns detected fields.

@@ -109,7 +109,9 @@ final class APIClient: ObservableObject {
         let filename = filenameOverride ?? fileURL.lastPathComponent
 
         var body = Data()
-        func append(_ s: String) { body.append(s.data(using: .utf8)!) }
+        func append(_ s: String) {
+            if let d = s.data(using: .utf8) { body.append(d) }
+        }
 
         for (k, v) in extraFields {
             append("--\(boundary)\r\n")
@@ -121,10 +123,11 @@ final class APIClient: ObservableObject {
         append("Content-Type: \(contentType)\r\n\r\n")
         body.append(data)
         append("\r\n--\(boundary)--\r\n")
-        req.httpBody = body
 
+        // NOTA: session.upload(for:from:) SOVRASCRIVE httpBody col secondo parametro.
+        // Quindi passiamo `body` come `from:` invece di settare httpBody + Data().
         do {
-            let (resp, response) = try await session.upload(for: req, from: Data())
+            let (resp, response) = try await session.upload(for: req, from: body)
             guard let http = response as? HTTPURLResponse else { throw APIError.empty }
             if http.statusCode == 401 { throw APIError.unauthorized }
             guard (200..<300).contains(http.statusCode) else {
@@ -133,6 +136,7 @@ final class APIClient: ObservableObject {
             return try JSONDecoder().decode(T.self, from: resp)
         } catch let e as APIError { throw e }
         catch let urlErr as URLError where urlErr.code == .cancelled { throw APIError.cancelled }
+        catch is CancellationError { throw APIError.cancelled }
         catch { throw APIError.transport(error) }
     }
 
@@ -186,8 +190,25 @@ final class APIClient: ObservableObject {
         }
     }
 
-    // MARK: Refresh
+    // MARK: Refresh — serializzato per evitare refresh paralleli
+    private var refreshTask: Task<Bool, Never>?
+
     private func tryRefreshToken() async -> Bool {
+        // Se c'è già un refresh in corso, attendi il suo risultato
+        if let existing = refreshTask {
+            return await existing.value
+        }
+        let t = Task<Bool, Never> { [weak self] in
+            guard let self else { return false }
+            return await self.performRefresh()
+        }
+        refreshTask = t
+        let result = await t.value
+        refreshTask = nil
+        return result
+    }
+
+    private func performRefresh() async -> Bool {
         guard let refresh = KeychainService.get(.refreshToken) else { return false }
         struct Body: Encodable { let refresh_token: String }
         struct Resp: Decodable {

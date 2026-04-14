@@ -52,7 +52,7 @@ actor OfflineCache {
         save(q, key: queueKey)
     }
 
-    func pendingActions() -> [QueuedAction] {
+    func pendingActions() async -> [QueuedAction] {
         load([QueuedAction].self, key: queueKey) ?? []
     }
 
@@ -93,10 +93,16 @@ final class Reachability: ObservableObject {
 
     init() {
         monitor.pathUpdateHandler = { [weak self] path in
-            Task { @MainActor in
-                self?.isOnline = path.status == .satisfied
+            let online = path.status == .satisfied
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                if self.isOnline != online { self.isOnline = online }
             }
         }
         monitor.start(queue: queue)
+    }
+
+    deinit {
+        monitor.cancel()
     }
 }

@@ -59,7 +59,12 @@ final class ApplePayVM: NSObject, ObservableObject, PKPaymentAuthorizationContro
         handler completion: @escaping (PKPaymentAuthorizationResult) -> Void
     ) {
         guard checkout?.checkoutId != nil else {
-            completion(.init(status: .failure, errors: nil)); return
+            Task { @MainActor in
+                self.error = "Nessun checkout attivo. Riprova."
+                Haptics.error()
+            }
+            completion(.init(status: .failure, errors: nil))
+            return
         }
 
         // Build the payment_token dictionary expected by SumUp
