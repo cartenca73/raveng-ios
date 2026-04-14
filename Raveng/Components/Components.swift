@@ -296,8 +296,6 @@ struct ListRowCard<Leading: View, Content: View>: View {
     var accentGradient: LinearGradient = BrandGradient.primary
     var showChevron: Bool = true
 
-    @State private var pressed = false
-
     var body: some View {
         HStack(spacing: 0) {
             // Accent strip
@@ -338,13 +336,7 @@ struct ListRowCard<Leading: View, Content: View>: View {
                 .stroke(Color.white.opacity(0.7), lineWidth: 0.8)
         )
         .shadow(color: BrandColor.deepBlue.opacity(0.08), radius: 14, x: 0, y: 7)
-        .scaleEffect(pressed ? 0.985 : 1.0)
-        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: pressed)
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in pressed = true }
-                .onEnded   { _ in pressed = false }
-        )
+        .contentShape(RoundedRectangle(cornerRadius: BrandRadius.md, style: .continuous))
     }
 }
 
