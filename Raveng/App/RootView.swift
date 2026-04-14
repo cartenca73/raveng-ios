@@ -25,6 +25,8 @@ struct RootView: View {
 struct MainTabView: View {
     @EnvironmentObject var auth: AuthService
     @State private var selection: Int = 0
+    @State private var showSpotlight = false
+    @StateObject private var spotlightData = SpotlightDataHub()
 
     private let tabs: [FloatingTab] = [
         .init(id: 0, title: "Firma",      systemImage: "signature"),
@@ -44,11 +46,40 @@ struct MainTabView: View {
                 }
             }
             .transition(.opacity)
+            .environmentObject(spotlightData)
 
-            FloatingTabBar(tabs: tabs, selection: $selection)
-                .padding(.bottom, 8)
+            FloatingTabBar(tabs: tabs, selection: $selection, onSearchTap: {
+                showSpotlight = true
+            })
+            .padding(.bottom, 8)
+        }
+        .sheet(isPresented: $showSpotlight) {
+            SpotlightSearchView(
+                query: .constant(""),
+                pending: spotlightData.pending,
+                templates: spotlightData.templates
+            ) { dest in
+                handleSpotlight(dest)
+            }
+            .presentationDetents([.large])
         }
     }
+
+    private func handleSpotlight(_ dest: SpotlightDestination) {
+        switch dest {
+        case .tab(let i):  selection = i
+        case .signerDetail:  selection = 0
+        case .templateDetail: selection = 1
+        case .action: break
+        }
+    }
+}
+
+// Shared lightweight data hub that SignerHome/AdminHome push into so Spotlight can search.
+@MainActor
+final class SpotlightDataHub: ObservableObject {
+    @Published var pending: [PendingSubmitter] = []
+    @Published var templates: [TemplateSummary] = []
 }
 
 struct ProfileView: View {

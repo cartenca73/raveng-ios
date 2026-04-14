@@ -24,6 +24,7 @@ final class SignerVM: ObservableObject {
 struct SignerHomeView: View {
     @StateObject var vm = SignerVM()
     @EnvironmentObject var auth: AuthService
+    @EnvironmentObject var spotlight: SpotlightDataHub
 
     var body: some View {
         NavigationStack {
@@ -83,6 +84,7 @@ struct SignerHomeView: View {
             .toolbar(.hidden, for: .navigationBar)
         }
         .task { await vm.load() }
+        .onChange(of: vm.items) { _, new in spotlight.pending = new }
     }
 }
 

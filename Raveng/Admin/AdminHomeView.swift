@@ -28,6 +28,7 @@ final class AdminVM: ObservableObject {
 
 struct AdminHomeView: View {
     @StateObject var vm = AdminVM()
+    @EnvironmentObject var spotlight: SpotlightDataHub
     @State private var showNewTemplate = false
     @State private var showNewSubmission = false
     @State private var pickSubmissionTemplate = false
@@ -154,6 +155,7 @@ struct AdminHomeView: View {
             }
         }
         .task { await vm.load() }
+        .onChange(of: vm.templates) { _, new in spotlight.templates = new }
         .fullScreenCover(isPresented: $showNewTemplate, onDismiss: {
             Task { await vm.load() }
         }) {

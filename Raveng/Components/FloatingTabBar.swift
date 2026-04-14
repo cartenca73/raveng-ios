@@ -9,10 +9,26 @@ struct FloatingTab: Identifiable, Equatable {
 struct FloatingTabBar: View {
     let tabs: [FloatingTab]
     @Binding var selection: Int
+    var onSearchTap: (() -> Void)? = nil
     @Namespace private var ns
 
     var body: some View {
         HStack(spacing: 4) {
+            if onSearchTap != nil {
+                Button {
+                    Haptics.soft()
+                    onSearchTap?()
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(BrandColor.ink)
+                        .frame(width: 36, height: 36)
+                        .background(Circle().fill(.ultraThinMaterial))
+                        .overlay(Circle().stroke(Color.white.opacity(0.4), lineWidth: 0.6))
+                }
+                .buttonStyle(.plain)
+                .padding(.leading, 4)
+            }
             ForEach(tabs) { tab in
                 Button {
                     if selection != tab.id {

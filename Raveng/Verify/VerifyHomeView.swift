@@ -53,6 +53,7 @@ final class VerifyVM: ObservableObject {
 struct VerifyHomeView: View {
     @StateObject var vm = VerifyVM()
     @State private var showPicker = false
+    @State private var showQR = false
 
     var body: some View {
         NavigationStack {
@@ -118,12 +119,28 @@ struct VerifyHomeView: View {
 
                         if let info = vm.info {
                             ResultCard(info: info).padding(.horizontal, 16)
+
+                            GradientButton(title: "Condividi via QR",
+                                           systemImage: "qrcode") {
+                                showQR = true
+                            }
+                            .padding(.horizontal, 16)
                         }
                     }
                     .padding(.bottom, 100)
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+        }
+        .sheet(isPresented: $showQR) {
+            if let h = vm.computedHash {
+                QRShareSheet(
+                    title: vm.pickedFileName ?? "Documento verificato",
+                    subtitle: "Verificalo con FirmaCDC scansionando questo QR",
+                    url: "https://docusign.ce4u.it/cdc/verify-blockchain?hash=\(h)",
+                    hash: h
+                )
+            }
         }
         .fileImporter(
             isPresented: $showPicker,
