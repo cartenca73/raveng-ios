@@ -84,6 +84,58 @@ final class APIClient: ObservableObject {
         }
     }
 
+    // MARK: - Multipart upload (PDF etc.)
+    func uploadMultipart<T: Decodable>(
+        path: String,
+        fileURL: URL,
+        fileField: String = "file",
+        extraFields: [String: String] = [:],
+        filenameOverride: String? = nil,
+        contentType: String = "application/pdf"
+    ) async throws -> T {
+        let url = APIClient.baseURL.appendingPathComponent(path)
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.timeoutInterval = 60
+        let boundary = "Boundary-\(UUID().uuidString)"
+        req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        if let token = KeychainService.get(.accessToken) {
+            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        let started = fileURL.startAccessingSecurityScopedResource()
+        defer { if started { fileURL.stopAccessingSecurityScopedResource() } }
+        let data = try Data(contentsOf: fileURL)
+        let filename = filenameOverride ?? fileURL.lastPathComponent
+
+        var body = Data()
+        func append(_ s: String) { body.append(s.data(using: .utf8)!) }
+
+        for (k, v) in extraFields {
+            append("--\(boundary)\r\n")
+            append("Content-Disposition: form-data; name=\"\(k)\"\r\n\r\n")
+            append("\(v)\r\n")
+        }
+        append("--\(boundary)\r\n")
+        append("Content-Disposition: form-data; name=\"\(fileField)\"; filename=\"\(filename)\"\r\n")
+        append("Content-Type: \(contentType)\r\n\r\n")
+        body.append(data)
+        append("\r\n--\(boundary)--\r\n")
+        req.httpBody = body
+
+        do {
+            let (resp, response) = try await session.upload(for: req, from: Data())
+            guard let http = response as? HTTPURLResponse else { throw APIError.empty }
+            if http.statusCode == 401 { throw APIError.unauthorized }
+            guard (200..<300).contains(http.statusCode) else {
+                throw APIError.http(http.statusCode, String(data: resp, encoding: .utf8))
+            }
+            return try JSONDecoder().decode(T.self, from: resp)
+        } catch let e as APIError { throw e }
+        catch let urlErr as URLError where urlErr.code == .cancelled { throw APIError.cancelled }
+        catch { throw APIError.transport(error) }
+    }
+
     // For endpoints that return no JSON (or we don't care)
     func sendVoid(_ req: APIRequest) async throws {
         let urlReq = try buildRequest(req)

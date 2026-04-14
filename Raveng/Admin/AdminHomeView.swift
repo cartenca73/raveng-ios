@@ -31,6 +31,10 @@ struct AdminHomeView: View {
     @State private var showNewTemplate = false
     @State private var showNewSubmission = false
     @State private var pickSubmissionTemplate = false
+    @State private var showDocumentPicker = false
+    @State private var uploadingPDF = false
+    @State private var uploadError: String?
+    @State private var openEditorForTemplateId: Int?
 
     var body: some View {
         NavigationStack {
@@ -65,16 +69,30 @@ struct AdminHomeView: View {
                         .padding(.horizontal, 16)
 
                         // Quick actions
-                        HStack(spacing: 10) {
-                            GradientButton(title: "Nuovo template",
-                                           systemImage: "plus",
-                                           gradient: BrandGradient.primary) {
-                                showNewTemplate = true
+                        VStack(spacing: 10) {
+                            GradientButton(title: "Carica un PDF e invia",
+                                           systemImage: "square.and.arrow.up.fill",
+                                           gradient: LinearGradient(
+                                            colors: [BrandColor.violet, BrandColor.brightBlue, BrandColor.cyan],
+                                            startPoint: .leading, endPoint: .trailing
+                                           ),
+                                           isLoading: uploadingPDF) {
+                                showDocumentPicker = true
                             }
-                            GradientButton(title: "Nuovo invio",
-                                           systemImage: "paperplane",
-                                           gradient: BrandGradient.success) {
-                                pickSubmissionTemplate = true
+                            HStack(spacing: 10) {
+                                GradientButton(title: "Nuovo template",
+                                               systemImage: "plus",
+                                               gradient: BrandGradient.primary) {
+                                    showNewTemplate = true
+                                }
+                                GradientButton(title: "Nuovo invio",
+                                               systemImage: "paperplane",
+                                               gradient: BrandGradient.success) {
+                                    pickSubmissionTemplate = true
+                                }
+                            }
+                            if let err = uploadError {
+                                InlineError(message: err)
                             }
                         }
                         .padding(.horizontal, 16)
@@ -153,9 +171,50 @@ struct AdminHomeView: View {
             WebAdminView(path: "/templates/\(t.id)/submissions/new",
                          title: "Nuovo invio")
         }
+        .fileImporter(isPresented: $showDocumentPicker,
+                      allowedContentTypes: [.pdf],
+                      allowsMultipleSelection: false) { result in
+            switch result {
+            case .success(let urls):
+                guard let url = urls.first else { return }
+                Task { await uploadPDF(url) }
+            case .failure(let e):
+                uploadError = e.localizedDescription
+            }
+        }
+        .fullScreenCover(item: Binding(
+            get: { openEditorForTemplateId.map { TemplateIdWrapper(id: $0) } },
+            set: { openEditorForTemplateId = $0?.id }
+        ), onDismiss: { Task { await vm.load() } }) { w in
+            WebAdminView(path: "/templates/\(w.id)", title: "Editor documento")
+        }
     }
 
+    private struct TemplateIdWrapper: Identifiable { let id: Int }
+
     @State private var pickedTemplateForSubmission: TemplateSummary?
+
+    private func uploadPDF(_ url: URL) async {
+        uploadingPDF = true; uploadError = nil
+        defer { uploadingPDF = false }
+        struct Resp: Decodable {
+            let ok: Bool
+            let template_id: Int
+            let name: String
+        }
+        do {
+            let r: Resp = try await APIClient.shared.uploadMultipart(
+                path: "admin/templates/from_pdf",
+                fileURL: url,
+                extraFields: ["extract_fields": "1"]
+            )
+            Haptics.success()
+            openEditorForTemplateId = r.template_id
+        } catch {
+            uploadError = error.localizedDescription
+            Haptics.error()
+        }
+    }
 
     @ViewBuilder
     private func emptyInline(_ text: String) -> some View {
