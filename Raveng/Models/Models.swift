@@ -38,7 +38,7 @@ struct AuthTokens: Codable, Equatable {
 }
 
 // MARK: - Submitter / Submission
-struct PendingSubmitter: Codable, Identifiable, Equatable {
+struct PendingSubmitter: Codable, Identifiable, Hashable {
     let id: Int
     let slug: String
     let name: String?
