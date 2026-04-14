@@ -36,7 +36,7 @@ final class SignerDetailVM: ObservableObject {
 struct SignerDetailView: View {
     let slug: String
     @StateObject var vm = SignerDetailVM()
-    @State private var showSignature = false
+    @State private var showWebSign = false
     @State private var showPayment = false
 
     var body: some View {
@@ -84,7 +84,7 @@ struct SignerDetailView: View {
                         VStack(spacing: 10) {
                             GradientButton(title: "Firma il documento",
                                            systemImage: "signature") {
-                                showSignature = true
+                                showWebSign = true
                             }
                             if (d.feaMode ?? "").contains("cdc") {
                                 GradientButton(title: "Procedi con CDC + Apple Pay",
@@ -108,17 +108,12 @@ struct SignerDetailView: View {
         .navigationTitle("Documento")
         .navigationBarTitleDisplayMode(.inline)
         .task { await vm.load(slug: slug) }
-        .sheet(isPresented: $showSignature) {
-            SignatureCaptureView { png in
-                Task {
-                    if await vm.sign(slug: slug, signaturePNG: png) {
-                        Haptics.success()
-                        showSignature = false
-                        await vm.load(slug: slug)
-                    }
-                }
+        .fullScreenCover(isPresented: $showWebSign) {
+            WebSignView(slug: slug) {
+                // Completion detected in WebView — chiudi e ricarica lista
+                showWebSign = false
+                Task { await vm.load(slug: slug) }
             }
-            .presentationDetents([.large])
         }
         .sheet(isPresented: $showPayment) {
             ApplePayPaymentView(slug: slug)
