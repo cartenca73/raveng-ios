@@ -139,7 +139,7 @@ struct BiometricLockOverlay: View {
         .task {
             if !attempted {
                 attempted = true
-                await gate.authenticate()
+                _ = await gate.authenticate()
             }
         }
     }
