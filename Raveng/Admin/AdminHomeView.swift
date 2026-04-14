@@ -98,7 +98,10 @@ struct AdminHomeView: View {
                         .padding(.horizontal, 16)
 
                         if vm.loading && vm.templates.isEmpty {
-                            ProgressView().padding(40).frame(maxWidth: .infinity)
+                            VStack(alignment: .leading, spacing: 12) {
+                                ForEach(0..<3) { _ in SkeletonRow() }
+                            }
+                            .padding(.horizontal, 16)
                         } else {
                             VStack(alignment: .leading, spacing: 12) {
                                 SectionHeader(title: "Templates",

@@ -186,20 +186,20 @@ struct HeroHeader: View {
     let title: String
     let subtitle: String
     var systemImage: String? = "shield.lefthalf.filled"
-    var gradientColors: [Color] = [
-        BrandColor.navy,
-        BrandColor.midBlue,
-        BrandColor.cyan,
-        BrandColor.brightBlue
-    ]
+    var gradientColors: [Color]? = nil
     var eyebrow: String? = nil
 
+    @EnvironmentObject private var tod: TimeOfDay
     @State private var appeared = false
+
+    private var effectiveColors: [Color] {
+        gradientColors ?? tod.heroColors
+    }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
             // Mesh background (animated blobs)
-            MeshBackground(colors: gradientColors, animated: true)
+            MeshBackground(colors: effectiveColors, animated: true)
                 .clipShape(RoundedRectangle(cornerRadius: BrandRadius.xl, style: .continuous))
 
             // Fine overlay gradient for readability

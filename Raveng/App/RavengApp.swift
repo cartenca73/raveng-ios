@@ -2,11 +2,14 @@ import SwiftUI
 
 @main
 struct RavengApp: App {
-    @StateObject private var auth = AuthService.shared
-    @StateObject private var api  = APIClient.shared
+    @StateObject private var auth    = AuthService.shared
+    @StateObject private var api     = APIClient.shared
+    @StateObject private var tod     = TimeOfDay.shared
+    @StateObject private var gate    = BiometricGate.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
-        // Global appearance tuning
+        // Global appearance
         let nav = UINavigationBarAppearance()
         nav.configureWithTransparentBackground()
         nav.titleTextAttributes = [.foregroundColor: UIColor.white]
@@ -15,7 +18,7 @@ struct RavengApp: App {
         UINavigationBar.appearance().scrollEdgeAppearance = nav
 
         let tab = UITabBarAppearance()
-        tab.configureWithDefaultBackground()
+        tab.configureWithTransparentBackground()
         UITabBar.appearance().standardAppearance = tab
         UITabBar.appearance().scrollEdgeAppearance = tab
     }
@@ -25,8 +28,28 @@ struct RavengApp: App {
             RootView()
                 .environmentObject(auth)
                 .environmentObject(api)
+                .environmentObject(tod)
+                .environmentObject(gate)
                 .preferredColorScheme(.light)
                 .tint(BrandColor.brightBlue)
+                .overlay {
+                    if gate.isLocked && auth.isAuthenticated {
+                        BiometricLockOverlay()
+                            .environmentObject(gate)
+                            .zIndex(99)
+                    }
+                }
+                .animation(.easeInOut(duration: 0.3), value: gate.isLocked)
+        }
+        .onChange(of: scenePhase) { _, new in
+            switch new {
+            case .background:
+                gate.applicationDidEnterBackground()
+            case .active:
+                gate.applicationWillEnterForeground()
+            default:
+                break
+            }
         }
     }
 }

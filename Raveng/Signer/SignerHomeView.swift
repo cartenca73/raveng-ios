@@ -40,7 +40,10 @@ struct SignerHomeView: View {
                         )
 
                         if vm.loading && vm.items.isEmpty {
-                            LoadingView().frame(height: 200)
+                            LazyVStack(spacing: 12) {
+                                ForEach(0..<5) { _ in SkeletonRow() }
+                            }
+                            .padding(.horizontal, 16)
                         } else if let err = vm.error {
                             VStack(spacing: 12) {
                                 InlineError(message: err)

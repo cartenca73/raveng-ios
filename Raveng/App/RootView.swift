@@ -52,53 +52,87 @@ struct MainTabView: View {
 
 struct ProfileView: View {
     @EnvironmentObject var auth: AuthService
+    @EnvironmentObject var tod: TimeOfDay
+    @EnvironmentObject var gate: BiometricGate
 
     var body: some View {
         NavigationStack {
             ZStack {
                 BrandColor.surface.ignoresSafeArea()
-                VStack(spacing: 20) {
-                    HeroHeader(
-                        title: auth.currentUser?.fullName ?? "Profilo",
-                        subtitle: auth.currentUser?.email ?? "",
-                        systemImage: "person.crop.circle.fill",
-                        gradientColors: [
-                            BrandColor.navy,
-                            BrandColor.deepBlue,
-                            BrandColor.violet,
-                            BrandColor.brightBlue
-                        ],
-                        eyebrow: auth.currentUser?.role?.uppercased() ?? "ACCOUNT"
-                    )
-                    AppCard {
-                        VStack(alignment: .leading, spacing: 14) {
-                            ProfileRow(icon: "envelope.fill", title: "Email",
-                                       value: auth.currentUser?.email ?? "—")
-                            Divider()
-                            ProfileRow(icon: "person.text.rectangle",
-                                       title: "Ruolo",
-                                       value: (auth.currentUser?.role ?? "user").capitalized)
+                ScrollView {
+                    VStack(spacing: 20) {
+                        HeroHeader(
+                            title: "\(tod.greeting), \(firstName)",
+                            subtitle: auth.currentUser?.email ?? "",
+                            systemImage: "person.crop.circle.fill",
+                            eyebrow: tod.eyebrowLabel
+                        )
+
+                        AppCard {
+                            VStack(alignment: .leading, spacing: 14) {
+                                ProfileRow(icon: "envelope.fill", title: "Email",
+                                           value: auth.currentUser?.email ?? "—")
+                                Divider()
+                                ProfileRow(icon: "person.text.rectangle",
+                                           title: "Ruolo",
+                                           value: (auth.currentUser?.role ?? "user").capitalized)
+                            }
                         }
-                    }
-                    .padding(.horizontal, 16)
+                        .padding(.horizontal, 16)
 
-                    Spacer()
+                        // Security card
+                        AppCard {
+                            VStack(alignment: .leading, spacing: 14) {
+                                HStack(spacing: 10) {
+                                    Image(systemName: gate.biometricIcon)
+                                        .foregroundStyle(BrandColor.midBlue)
+                                    Text("Sicurezza").font(BrandFont.title(16))
+                                    Spacer()
+                                }
+                                Divider()
+                                Toggle(isOn: $gate.enabled) {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Sblocco con \(gate.biometricKindName)")
+                                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                        Text("Richiedi biometria all'avvio")
+                                            .font(BrandFont.caption(11)).foregroundStyle(BrandColor.mute)
+                                    }
+                                }
+                                .tint(BrandColor.brightBlue)
+                                .disabled(!gate.canUseBiometrics)
 
-                    GradientButton(title: "Esci",
-                                   systemImage: "arrow.right.square.fill",
-                                   gradient: LinearGradient(
-                                       colors: [BrandColor.danger, Color(hex: 0xDC2626)],
-                                       startPoint: .topLeading, endPoint: .bottomTrailing
-                                   )) {
-                        Task { await auth.logout() }
+                                Button {
+                                    gate.lockNow()
+                                } label: {
+                                    Label("Blocca ora", systemImage: "lock.fill")
+                                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                        .foregroundStyle(BrandColor.ink)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 16)
+
+                        GradientButton(title: "Esci",
+                                       systemImage: "arrow.right.square.fill",
+                                       gradient: LinearGradient(
+                                           colors: [BrandColor.danger, Color(hex: 0xDC2626)],
+                                           startPoint: .topLeading, endPoint: .bottomTrailing
+                                       )) {
+                            Task { await auth.logout() }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 20)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 20)
                 }
             }
             .navigationTitle("")
             .toolbar(.hidden, for: .navigationBar)
         }
+    }
+
+    private var firstName: String {
+        let full = auth.currentUser?.fullName ?? ""
+        return full.split(separator: " ").first.map(String.init) ?? "Ciao"
     }
 }
 
