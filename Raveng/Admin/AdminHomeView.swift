@@ -257,10 +257,11 @@ struct AdminHomeView: View {
             let name: String
         }
         do {
-            let r: Resp = try await APIClient.shared.uploadMultipart(
+            // Usa base64 JSON (workaround bug iOS 18 che forza Content-Type a application/json su multipart)
+            let r: Resp = try await APIClient.shared.uploadPDFAsBase64(
                 path: "admin/templates/from_pdf",
                 fileURL: url,
-                extraFields: ["extract_fields": "1"]
+                extractFields: true
             )
             Haptics.success()
             openEditorForTemplateId = r.template_id

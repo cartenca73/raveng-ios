@@ -84,7 +84,38 @@ final class APIClient: ObservableObject {
         }
     }
 
-    // MARK: - Multipart upload (PDF etc.)
+    // MARK: - Base64 JSON upload (workaround bug iOS 18+ su multipart)
+    struct Base64UploadBody: Encodable {
+        let file_base64: String
+        let filename: String
+        let extract_fields: String?
+        let name: String?
+    }
+
+    func uploadPDFAsBase64<T: Decodable>(
+        path: String,
+        fileURL: URL,
+        filename: String? = nil,
+        extractFields: Bool = true,
+        customName: String? = nil
+    ) async throws -> T {
+        let started = fileURL.startAccessingSecurityScopedResource()
+        defer { if started { fileURL.stopAccessingSecurityScopedResource() } }
+        let data = try Data(contentsOf: fileURL)
+        let b64 = data.base64EncodedString()
+        let fname = filename ?? fileURL.lastPathComponent
+
+        let body = Base64UploadBody(
+            file_base64: b64,
+            filename: fname,
+            extract_fields: extractFields ? "1" : "0",
+            name: customName
+        )
+        let req = APIRequest(path: path, method: .POST, body: body)
+        return try await send(req)
+    }
+
+    // MARK: - Multipart upload (PDF etc.) — DEPRECATED su iOS 18+ per bug CFNetwork
     func uploadMultipart<T: Decodable>(
         path: String,
         fileURL: URL,
