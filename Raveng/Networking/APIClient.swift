@@ -94,14 +94,7 @@ final class APIClient: ObservableObject {
         contentType: String = "application/pdf"
     ) async throws -> T {
         let url = APIClient.baseURL.appendingPathComponent(path)
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.timeoutInterval = 60
         let boundary = "Boundary-\(UUID().uuidString)"
-        req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        if let token = KeychainService.get(.accessToken) {
-            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
 
         let started = fileURL.startAccessingSecurityScopedResource()
         defer { if started { fileURL.stopAccessingSecurityScopedResource() } }
@@ -124,15 +117,32 @@ final class APIClient: ObservableObject {
         body.append(data)
         append("\r\n--\(boundary)--\r\n")
 
-        // Setto il body direttamente su httpBody e uso data(for:) che NON modifica headers.
-        // Setto Content-Length esplicito per evitare chunked encoding che alcuni proxy
-        // riscrivono perdendo il Content-Type multipart.
-        req.httpBody = body
-        req.setValue("\(body.count)", forHTTPHeaderField: "Content-Length")
-        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        // Scrivi body su file temporaneo (evita size-limit su httpBody e garantisce
+        // che session.upload(for:fromFile:) preservi Content-Type senza normalizzazione)
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("upload-\(UUID().uuidString).bin")
+        try body.write(to: tempURL, options: .atomic)
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+
+        // Costruisco la URLRequest con allHTTPHeaderFields (un unico set, no override)
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.timeoutInterval = 120
+        var headers: [String: String] = [
+            "Content-Type":   "multipart/form-data; boundary=\(boundary)",
+            "Accept":         "application/json",
+            "Content-Length": "\(body.count)",
+            "User-Agent":     "FirmaCDC-iOS/1.0"
+        ]
+        if let token = KeychainService.get(.accessToken), !token.isEmpty {
+            headers["Authorization"] = "Bearer \(token)"
+        }
+        req.allHTTPHeaderFields = headers
 
         do {
-            let (resp, response) = try await session.data(for: req)
+            // upload(for:fromFile:) è il metodo ufficiale Apple per upload multipart
+            // e NON modifica gli headers del URLRequest
+            let (resp, response) = try await session.upload(for: req, fromFile: tempURL)
             guard let http = response as? HTTPURLResponse else { throw APIError.empty }
             if http.statusCode == 401 { throw APIError.unauthorized }
             guard (200..<300).contains(http.statusCode) else {
