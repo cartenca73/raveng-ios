@@ -231,6 +231,21 @@ struct PaymentInfo: Decodable, Equatable {
         case transactionId = "transaction_id"
         case completedAt   = "completed_at"
     }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        transactionId = try c.decodeIfPresent(String.self, forKey: .transactionId)
+        currency      = try c.decodeIfPresent(String.self, forKey: .currency)
+        completedAt   = try c.decodeIfPresent(String.self, forKey: .completedAt)
+        // amount: tollera sia Double (nuovo) sia String (vecchio "EUR 5.0")
+        if let d = try? c.decodeIfPresent(Double.self, forKey: .amount) {
+            amount = d
+        } else if let s = try? c.decodeIfPresent(String.self, forKey: .amount) {
+            amount = Double(s.filter { "0123456789.,".contains($0) }.replacingOccurrences(of: ",", with: "."))
+        } else {
+            amount = nil
+        }
+    }
 }
 
 // Legacy unified struct for old UI code path
